@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: evanlink-cn-serve
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/evanlink_cn?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+logging:
+  level:
+    com.evanlink: debug
+    org.hibernate.SQL: debug
