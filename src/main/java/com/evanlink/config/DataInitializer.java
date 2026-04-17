@@ -41,86 +41,41 @@ public class DataInitializer implements CommandLineRunner {
         userInfo.setEmail("514520638@qq.com");
         userInfo.setGithub("https://github.com/514520638");
         userInfo.setGitee("https://gitee.com/gitee_evan/projects");
-        userInfo.setResumeUrl("https://www.qmjianli.com/cvs/251112EQRYWGY0GB");
         userInfo.setVisitorNumber(0L);
 
         userInfoRepository.save(userInfo);
 
-        // 创建 Skills（独立于 UserInfo）
-        Skill skill1 = new Skill();
-        skill1.setName("React");
-        skill1.setNameEn("React");
-        skill1.setLevel(90);
-        skill1.setCategory("frontend");
-
-        Skill skill2 = new Skill();
-        skill2.setName("TypeScript");
-        skill2.setNameEn("TypeScript");
-        skill2.setLevel(85);
-        skill2.setCategory("frontend");
-
-        Skill skill3 = new Skill();
-        skill3.setName("Vue.js");
-        skill3.setNameEn("Vue.js");
-        skill3.setLevel(80);
-        skill3.setCategory("frontend");
-
-        Skill skill4 = new Skill();
-        skill4.setName("Go");
-        skill4.setNameEn("Go");
-        skill4.setLevel(75);
-        skill4.setCategory("backend");
-
-        Skill skill5 = new Skill();
-        skill5.setName("Node.js");
-        skill5.setNameEn("Node.js");
-        skill5.setLevel(80);
-        skill5.setCategory("backend");
-
-        Skill skill6 = new Skill();
-        skill6.setName("Python");
-        skill6.setNameEn("Python");
-        skill6.setLevel(70);
-        skill6.setCategory("backend");
-
-        Skill skill7 = new Skill();
-        skill7.setName("Docker");
-        skill7.setNameEn("Docker");
-        skill7.setLevel(85);
-        skill7.setCategory("devops");
-
-        Skill skill8 = new Skill();
-        skill8.setName("Kubernetes");
-        skill8.setNameEn("Kubernetes");
-        skill8.setLevel(70);
-        skill8.setCategory("devops");
-
-        Skill skill9 = new Skill();
-        skill9.setName("CI/CD");
-        skill9.setNameEn("CI/CD");
-        skill9.setLevel(80);
-        skill9.setCategory("devops");
-
-        Skill skill10 = new Skill();
-        skill10.setName("Git");
-        skill10.setNameEn("Git");
-        skill10.setLevel(90);
-        skill10.setCategory("tools");
-
-        Skill skill11 = new Skill();
-        skill11.setName("Linux");
-        skill11.setNameEn("Linux");
-        skill11.setLevel(85);
-        skill11.setCategory("tools");
-
-        Skill skill12 = new Skill();
-        skill12.setName("PostgreSQL");
-        skill12.setNameEn("PostgreSQL");
-        skill12.setLevel(75);
-        skill12.setCategory("tools");
-
-        skillRepository.saveAll(Arrays.asList(skill1, skill2, skill3, skill4, skill5, skill6, skill7, skill8, skill9, skill10, skill11, skill12));
+        // 创建 Skills（按新结构）
+        // 前端
+        createSkill("Vue", "Vue", 90, "前端", "frontend");
+        createSkill("小程序", "Mini-program", 85, "前端", "frontend");
+        createSkill("React", "React", 70, "前端", "frontend");
+        
+        // AI
+        createSkill("Java", "Java", 60, "AI", "AI");
+        createSkill("大模型应用", "Large Model Applications", 85, "AI", "AI");
+        createSkill("OpenClaw", "OpenClaw", 75, "AI", "AI");
+        
+        // DevOps
+        createSkill("Xone", "Xone", 90, "DevOps", "devops");
+        createSkill("腾讯云", "Tencent Cloud", 85, "DevOps", "devops");
+        createSkill("CI/CD", "CI/CD", 80, "DevOps", "devops");
+        
+        // tools
+        createSkill("Git", "Git", 90, "tools", "tools");
+        createSkill("GitLab插件", "GitLab Plugin", 90, "tools", "tools");
+        createSkill("Tapd", "Tapd", 95, "tools", "tools");
         
         System.out.println("===== UserInfo 和 Skills 数据初始化完成 =====");
+    }
+    
+    private void createSkill(String name, String nameEn, Integer level, String classify, String classifyEn) {
+        Skill skill = new Skill();
+        skill.setName(name);
+        skill.setNameEn(nameEn);
+        skill.setLevel(level);
+        skill.setClassify(classify);
+        skill.setClassifyEn(classifyEn);
+        skillRepository.save(skill);
     }
 }

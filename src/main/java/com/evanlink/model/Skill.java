@@ -1,6 +1,5 @@
 package com.evanlink.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
@@ -18,7 +17,11 @@ public class Skill {
     
     private Integer level;
     
-    private String category;
+    @Column(name = "classify")
+    private String classify;
+    
+    @Column(name = "classify_en")
+    private String classifyEn;
     
     // Getters and Setters
     public Long getId() { return id; }
@@ -33,6 +36,9 @@ public class Skill {
     public Integer getLevel() { return level; }
     public void setLevel(Integer level) { this.level = level; }
     
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
+    public String getClassify() { return classify; }
+    public void setClassify(String classify) { this.classify = classify; }
+    
+    public String getClassifyEn() { return classifyEn; }
+    public void setClassifyEn(String classifyEn) { this.classifyEn = classifyEn; }
 }
