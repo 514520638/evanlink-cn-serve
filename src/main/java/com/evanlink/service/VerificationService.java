@@ -1,12 +1,16 @@
 package com.evanlink.service;
 
+import com.evanlink.repository.UserInfoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class VerificationService {
 
     private static final String CORRECT_PASSWORD = "root";
-    private static final String RESUME_URL = "https://www.qmjianli.com/cvs/251112EQRYWGY0GB";
+
+    @Autowired
+    private UserInfoRepository userInfoRepository;
 
     /**
      * 验证手机号格式（中国大陆手机号）
@@ -31,6 +35,8 @@ public class VerificationService {
      * 获取简历URL
      */
     public String getResumeUrl() {
-        return RESUME_URL;
+        return userInfoRepository.findFirstByOrderByIdAsc()
+            .map(userInfo -> userInfo.getResumeUrl())
+            .orElse(null);
     }
 }

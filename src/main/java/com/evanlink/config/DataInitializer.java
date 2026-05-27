@@ -41,6 +41,7 @@ public class DataInitializer implements CommandLineRunner {
         userInfo.setEmail("514520638@qq.com");
         userInfo.setGithub("https://github.com/514520638");
         userInfo.setGitee("https://gitee.com/gitee_evan/projects");
+        userInfo.setResumeUrl("https://www.qmjianli.com/cvs/251112EQRYWGY0GB");
         userInfo.setVisitorNumber(0L);
 
         userInfoRepository.save(userInfo);

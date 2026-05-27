@@ -6,9 +6,9 @@ spring:
     name: evanlink-cn-serve
   
   datasource:
-    url: jdbc:mysql://localhost:3306/evanlink_cn?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3307/evanlink_cn?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: 
+    password: 0.cptbtptp
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   jpa:
