@@ -110,7 +110,7 @@ target/evanlink-cn-serve-1.0.0.jar
 ### 2. 上传 jar 到服务器
 
 ```bash
-scp target/evanlink-cn-serve-1.0.0.jar root@服务器IP:/root/app.jar
+scp target/evanlink-cn-serve-1.0.0.jar root@62.234.72.18:/root/app.jar
 ```
 
 ### 3. 替换宿主机 jar
