@@ -4,6 +4,7 @@ import com.evanlink.model.UserInfo;
 import com.evanlink.model.Skill;
 import com.evanlink.repository.UserInfoRepository;
 import com.evanlink.repository.SkillRepository;
+import com.evanlink.service.ArticleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -20,8 +21,13 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private SkillRepository skillRepository;
 
+    @Autowired
+    private ArticleService articleService;
+
     @Override
     public void run(String... args) {
+        articleService.initializeDefaultsIfEmpty();
+
         // 如果数据库已有数据，则不初始化
         if (userInfoRepository.count() > 0) {
             return;
