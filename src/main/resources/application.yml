@@ -24,3 +24,8 @@ logging:
   level:
     com.evanlink: debug
     org.hibernate.SQL: debug
+
+app:
+  admin:
+    username: 14776866846
+    password: 0.cptbtptp

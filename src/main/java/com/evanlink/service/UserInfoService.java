@@ -24,7 +24,28 @@ public class UserInfoService {
         return userInfoRepository.findFirstByOrderByIdAsc();
     }
 
-    public UserInfo save(UserInfo userInfo) {
+    @Transactional
+    public UserInfo updatePrimaryUserInfo(UserInfo input) {
+        UserInfo userInfo = userInfoRepository.findFirstByOrderByIdAsc()
+            .orElseGet(UserInfo::new);
+
+        userInfo.setName(input.getName());
+        userInfo.setNameEn(input.getNameEn());
+        userInfo.setTitle(input.getTitle());
+        userInfo.setTitleEn(input.getTitleEn());
+        userInfo.setBio(input.getBio());
+        userInfo.setBioEn(input.getBioEn());
+        userInfo.setAvatar(input.getAvatar());
+        userInfo.setWechat(input.getWechat());
+        userInfo.setPhoneNumber(input.getPhoneNumber());
+        userInfo.setEmail(input.getEmail());
+        userInfo.setGithub(input.getGithub());
+        userInfo.setGitee(input.getGitee());
+        userInfo.setResumeUrl(input.getResumeUrl());
+        if (userInfo.getVisitorNumber() == null) {
+            userInfo.setVisitorNumber(0L);
+        }
+
         return userInfoRepository.save(userInfo);
     }
     
@@ -64,10 +85,5 @@ public class UserInfoService {
     @Transactional
     public boolean isNewVisitor(String ip) {
         return !clientHistoryRepository.existsByIp(ip);
-    }
-
-    @Transactional
-    public void deleteAll() {
-        userInfoRepository.deleteAll();
     }
 }
