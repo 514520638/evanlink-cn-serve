@@ -1,10 +1,12 @@
 package com.evanlink.controller;
 
 import com.evanlink.dto.*;
+import com.evanlink.service.AdminAuthService;
 import com.evanlink.service.ArticleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,9 @@ public class ArticleController {
 
     @Autowired
     private ArticleService articleService;
+
+    @Autowired
+    private AdminAuthService adminAuthService;
 
     @GetMapping
     public ResponseEntity<PageResponse<ArticleResponse>> searchArticles(
@@ -61,7 +66,14 @@ public class ArticleController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createArticle(@RequestBody ArticleSaveRequest request) {
+    public ResponseEntity<?> createArticle(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @RequestBody ArticleSaveRequest request
+    ) {
+        if (!adminAuthService.isValidAuthorization(authorization)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Collections.singletonMap("message", "请先登录后再管理文章"));
+        }
         try {
             return ResponseEntity.ok(articleService.create(request));
         } catch (IllegalArgumentException ex) {
@@ -73,7 +85,15 @@ public class ArticleController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateArticle(@PathVariable Long id, @RequestBody ArticleSaveRequest request) {
+    public ResponseEntity<?> updateArticle(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable Long id,
+            @RequestBody ArticleSaveRequest request
+    ) {
+        if (!adminAuthService.isValidAuthorization(authorization)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Collections.singletonMap("message", "请先登录后再管理文章"));
+        }
         try {
             return ResponseEntity.ok(articleService.update(id, request));
         } catch (NoSuchElementException ex) {
@@ -87,7 +107,13 @@ public class ArticleController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteArticle(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteArticle(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable Long id
+    ) {
+        if (!adminAuthService.isValidAuthorization(authorization)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         try {
             articleService.delete(id);
             return ResponseEntity.noContent().build();
