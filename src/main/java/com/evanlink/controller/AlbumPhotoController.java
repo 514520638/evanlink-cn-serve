@@ -22,13 +22,20 @@ import java.util.NoSuchElementException;
 public class AlbumPhotoController {
 
     private static final Logger logger = LoggerFactory.getLogger(AlbumPhotoController.class);
+    private static final String MIRROR_SECRET_HEADER = "X-Upload-Mirror-Secret";
 
     private final AlbumPhotoService albumPhotoService;
     private final AdminAuthService adminAuthService;
+    private final String mirrorSecret;
 
-    public AlbumPhotoController(AlbumPhotoService albumPhotoService, AdminAuthService adminAuthService) {
+    public AlbumPhotoController(
+            AlbumPhotoService albumPhotoService,
+            AdminAuthService adminAuthService,
+            @org.springframework.beans.factory.annotation.Value("${app.upload.mirror.secret:}") String mirrorSecret
+    ) {
         this.albumPhotoService = albumPhotoService;
         this.adminAuthService = adminAuthService;
+        this.mirrorSecret = mirrorSecret;
     }
 
     @GetMapping
@@ -74,6 +81,47 @@ public class AlbumPhotoController {
         }
     }
 
+    @PostMapping("/mirror")
+    public ResponseEntity<?> mirrorUpload(
+            @RequestHeader(name = MIRROR_SECRET_HEADER, required = false) String secret,
+            @RequestParam("fileName") String fileName,
+            @RequestParam("file") MultipartFile file
+    ) {
+        if (!isValidMirrorSecret(secret)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Collections.singletonMap("message", "镜像上传未授权"));
+        }
+        try {
+            albumPhotoService.saveMirroredFile(fileName, file);
+            return ResponseEntity.ok(Collections.singletonMap("success", true));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message", ex.getMessage()));
+        } catch (Exception ex) {
+            logger.error("Mirror album media failed, fileName={}", fileName, ex);
+            return ResponseEntity.internalServerError().body(Collections.singletonMap("message", "镜像上传失败"));
+        }
+    }
+
+    @PostMapping("/mirror/delete")
+    public ResponseEntity<?> mirrorDelete(
+            @RequestHeader(name = MIRROR_SECRET_HEADER, required = false) String secret,
+            @RequestParam("fileName") String fileName
+    ) {
+        if (!isValidMirrorSecret(secret)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Collections.singletonMap("message", "镜像删除未授权"));
+        }
+        try {
+            albumPhotoService.deleteMirroredFile(fileName);
+            return ResponseEntity.ok(Collections.singletonMap("success", true));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message", ex.getMessage()));
+        } catch (Exception ex) {
+            logger.error("Mirror album media delete failed, fileName={}", fileName, ex);
+            return ResponseEntity.internalServerError().body(Collections.singletonMap("message", "镜像删除失败"));
+        }
+    }
+
     private ResponseEntity<Map<String, String>> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(Collections.singletonMap("message", "请先登录后再管理相册"));
@@ -82,6 +130,10 @@ public class AlbumPhotoController {
     private boolean isAuthorized(String authorization, HttpServletRequest request) {
         return adminAuthService.isValidAuthorization(authorization)
             || adminAuthService.isValidToken(getAdminCookieValue(request));
+    }
+
+    private boolean isValidMirrorSecret(String secret) {
+        return mirrorSecret != null && !mirrorSecret.isBlank() && mirrorSecret.equals(secret);
     }
 
     private String getAdminCookieValue(HttpServletRequest request) {

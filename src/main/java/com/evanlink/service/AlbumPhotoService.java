@@ -36,9 +36,11 @@ public class AlbumPhotoService {
     private String uploadDir;
 
     private final AlbumPhotoRepository albumPhotoRepository;
+    private final AlbumMediaMirrorService albumMediaMirrorService;
 
-    public AlbumPhotoService(AlbumPhotoRepository albumPhotoRepository) {
+    public AlbumPhotoService(AlbumPhotoRepository albumPhotoRepository, AlbumMediaMirrorService albumMediaMirrorService) {
         this.albumPhotoRepository = albumPhotoRepository;
+        this.albumMediaMirrorService = albumMediaMirrorService;
     }
 
     public List<AlbumPhotoResponse> list() {
@@ -74,6 +76,8 @@ public class AlbumPhotoService {
             throw new IllegalStateException("保存媒体失败", ex);
         }
 
+        albumMediaMirrorService.mirrorUpload(target, fileName);
+
         AlbumPhoto photo = new AlbumPhoto();
         photo.setUrl("/uploads/album/" + fileName);
         photo.setFileName(fileName);
@@ -102,6 +106,46 @@ public class AlbumPhotoService {
             Files.deleteIfExists(filePath);
         } catch (IOException ignored) {
             // The database state is the source of truth; a missing local file should not block deletion.
+        }
+        albumMediaMirrorService.mirrorDelete(photo.getFileName());
+    }
+
+    public void saveMirroredFile(String fileName, MultipartFile file) {
+        if (fileName == null || fileName.isBlank() || file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("镜像文件参数不完整");
+        }
+
+        String cleanFileName = StringUtils.cleanPath(fileName);
+        Path albumDir = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("album");
+        Path target = albumDir.resolve(cleanFileName).normalize();
+        if (!target.startsWith(albumDir)) {
+            throw new IllegalArgumentException("非法文件名");
+        }
+
+        try {
+            Files.createDirectories(albumDir);
+            file.transferTo(target);
+        } catch (IOException ex) {
+            throw new IllegalStateException("保存镜像媒体失败", ex);
+        }
+    }
+
+    public void deleteMirroredFile(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("镜像文件名不能为空");
+        }
+
+        String cleanFileName = StringUtils.cleanPath(fileName);
+        Path albumDir = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("album");
+        Path target = albumDir.resolve(cleanFileName).normalize();
+        if (!target.startsWith(albumDir)) {
+            throw new IllegalArgumentException("非法文件名");
+        }
+
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException ex) {
+            throw new IllegalStateException("删除镜像媒体失败", ex);
         }
     }
 

@@ -125,6 +125,29 @@ Authorization: Bearer <admin_token>
 MySQL 容器: evanlink-mysql
 ```
 
+相册上传文件默认保存在后端工作目录的 `uploads/album` 下。线上 Docker 建议把宿主机目录挂载到容器内工作目录，例如：
+
+```text
+宿主机: /opt/evanlink-backend/uploads
+容器内: /app/uploads
+```
+
+如果本地后端直接连接线上 MySQL，并希望本地上传的相册图片/视频同步到服务器，需要配置镜像上传。服务器后端配置接收密钥：
+
+```bash
+APP_UPLOAD_MIRROR_SECRET=替换成强随机密钥
+```
+
+本地后端配置同一个密钥和服务器镜像接口：
+
+```bash
+APP_UPLOAD_MIRROR_URL=https://evanlink.cn/api/album/photos/mirror
+APP_UPLOAD_MIRROR_DELETE_URL=https://evanlink.cn/api/album/photos/mirror/delete
+APP_UPLOAD_MIRROR_SECRET=替换成同一个强随机密钥
+```
+
+镜像接口只写入或删除服务器本地文件，不新增数据库记录，避免本地上传时出现重复相册记录。
+
 ### 1. 本地构建
 
 ```bash

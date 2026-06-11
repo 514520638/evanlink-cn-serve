@@ -32,6 +32,10 @@ logging:
 app:
   upload:
     dir: uploads
+    mirror:
+      url: ${APP_UPLOAD_MIRROR_URL:}
+      delete-url: ${APP_UPLOAD_MIRROR_DELETE_URL:}
+      secret: ${APP_UPLOAD_MIRROR_SECRET:}
   admin:
     username: 14776866846
     password: 0.cptbtptp
