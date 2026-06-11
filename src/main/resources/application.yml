@@ -19,6 +19,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
 
 logging:
   level:
@@ -26,6 +30,8 @@ logging:
     org.hibernate.SQL: debug
 
 app:
+  upload:
+    dir: uploads
   admin:
     username: 14776866846
     password: 0.cptbtptp
