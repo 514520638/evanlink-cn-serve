@@ -3,6 +3,8 @@ package com.evanlink.controller;
 import com.evanlink.dto.*;
 import com.evanlink.service.AdminAuthService;
 import com.evanlink.service.ArticleService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +19,6 @@ import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/articles")
-@CrossOrigin(origins = "*")
 public class ArticleController {
 
     private static final Logger logger = LoggerFactory.getLogger(ArticleController.class);
@@ -68,9 +69,10 @@ public class ArticleController {
     @PostMapping
     public ResponseEntity<?> createArticle(
             @RequestHeader(name = "Authorization", required = false) String authorization,
+            HttpServletRequest httpRequest,
             @RequestBody ArticleSaveRequest request
     ) {
-        if (!adminAuthService.isValidAuthorization(authorization)) {
+        if (!isAuthorized(authorization, httpRequest)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Collections.singletonMap("message", "请先登录后再管理文章"));
         }
@@ -87,10 +89,11 @@ public class ArticleController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateArticle(
             @RequestHeader(name = "Authorization", required = false) String authorization,
+            HttpServletRequest httpRequest,
             @PathVariable Long id,
             @RequestBody ArticleSaveRequest request
     ) {
-        if (!adminAuthService.isValidAuthorization(authorization)) {
+        if (!isAuthorized(authorization, httpRequest)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Collections.singletonMap("message", "请先登录后再管理文章"));
         }
@@ -109,9 +112,10 @@ public class ArticleController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteArticle(
             @RequestHeader(name = "Authorization", required = false) String authorization,
+            HttpServletRequest httpRequest,
             @PathVariable Long id
     ) {
-        if (!adminAuthService.isValidAuthorization(authorization)) {
+        if (!isAuthorized(authorization, httpRequest)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         try {
@@ -137,5 +141,23 @@ public class ArticleController {
             .filter(item -> !item.isEmpty())
             .map(Long::valueOf)
             .toList();
+    }
+
+    private boolean isAuthorized(String authorization, HttpServletRequest request) {
+        return adminAuthService.isValidAuthorization(authorization)
+            || adminAuthService.isValidToken(getAdminCookieValue(request));
+    }
+
+    private String getAdminCookieValue(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        for (Cookie cookie : cookies) {
+            if (AdminAuthService.ADMIN_COOKIE_NAME.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 }

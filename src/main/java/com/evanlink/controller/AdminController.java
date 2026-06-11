@@ -5,8 +5,12 @@ import com.evanlink.model.UserInfo;
 import com.evanlink.service.AdminAuthService;
 import com.evanlink.service.SkillService;
 import com.evanlink.service.UserInfoService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +22,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "*")
 public class AdminController {
 
     @Autowired
@@ -31,19 +34,29 @@ public class AdminController {
     private SkillService skillService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
         Optional<String> token = adminAuthService.login(request.getUsername(), request.getPassword());
         if (token.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Collections.singletonMap("message", "账号或密码错误"));
         }
 
-        return ResponseEntity.ok(Map.of("token", token.get()));
+        response.addHeader("Set-Cookie", buildAdminCookie(token.get(), adminAuthService.getTokenTtlSeconds()).toString());
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        response.addHeader("Set-Cookie", buildAdminCookie("", 0).toString());
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@RequestHeader(name = "Authorization", required = false) String authorization) {
-        if (!isAuthorized(authorization)) {
+    public ResponseEntity<?> getProfile(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            HttpServletRequest request
+    ) {
+        if (!isAuthorized(authorization, request)) {
             return unauthorized();
         }
 
@@ -57,9 +70,10 @@ public class AdminController {
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(
             @RequestHeader(name = "Authorization", required = false) String authorization,
+            HttpServletRequest httpRequest,
             @RequestBody ProfileRequest request
     ) {
-        if (!isAuthorized(authorization)) {
+        if (!isAuthorized(authorization, httpRequest)) {
             return unauthorized();
         }
 
@@ -68,8 +82,32 @@ public class AdminController {
         return ResponseEntity.ok(new ProfileResponse(AdminUserInfoResponse.from(userInfo), skills));
     }
 
-    private boolean isAuthorized(String authorization) {
-        return adminAuthService.isValidAuthorization(authorization);
+    private boolean isAuthorized(String authorization, HttpServletRequest request) {
+        return adminAuthService.isValidAuthorization(authorization)
+            || adminAuthService.isValidToken(getAdminCookieValue(request));
+    }
+
+    private String getAdminCookieValue(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        for (Cookie cookie : cookies) {
+            if (AdminAuthService.ADMIN_COOKIE_NAME.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
+
+    private ResponseCookie buildAdminCookie(String token, long maxAgeSeconds) {
+        return ResponseCookie.from(AdminAuthService.ADMIN_COOKIE_NAME, token)
+            .httpOnly(true)
+            .secure(false)
+            .sameSite("Lax")
+            .path("/")
+            .maxAge(maxAgeSeconds)
+            .build();
     }
 
     private ResponseEntity<Map<String, String>> unauthorized() {

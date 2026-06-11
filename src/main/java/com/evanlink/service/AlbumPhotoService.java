@@ -26,7 +26,10 @@ public class AlbumPhotoService {
         "image/jpeg",
         "image/png",
         "image/webp",
-        "image/gif"
+        "image/gif",
+        "video/mp4",
+        "video/webm",
+        "video/quicktime"
     );
 
     @Value("${app.upload.dir:uploads}")
@@ -46,7 +49,16 @@ public class AlbumPhotoService {
     }
 
     @Transactional
-    public AlbumPhotoResponse upload(MultipartFile file, String title, String description) {
+    public List<AlbumPhotoResponse> upload(List<MultipartFile> files, String title, String description) {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("请选择要上传的照片或视频");
+        }
+        return files.stream()
+            .map(file -> uploadOne(file, title, description))
+            .toList();
+    }
+
+    private AlbumPhotoResponse uploadOne(MultipartFile file, String title, String description) {
         validate(file);
 
         String originalName = StringUtils.cleanPath(file.getOriginalFilename() == null ? "photo" : file.getOriginalFilename());
@@ -59,7 +71,7 @@ public class AlbumPhotoService {
             Files.createDirectories(albumDir);
             file.transferTo(target);
         } catch (IOException ex) {
-            throw new IllegalStateException("保存照片失败", ex);
+            throw new IllegalStateException("保存媒体失败", ex);
         }
 
         AlbumPhoto photo = new AlbumPhoto();
@@ -95,10 +107,10 @@ public class AlbumPhotoService {
 
     private void validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("请选择要上传的照片");
+            throw new IllegalArgumentException("请选择要上传的照片或视频");
         }
         if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
-            throw new IllegalArgumentException("仅支持 JPG、PNG、WebP、GIF 图片");
+            throw new IllegalArgumentException("仅支持 JPG、PNG、WebP、GIF 图片和 MP4、WebM、MOV 视频");
         }
     }
 

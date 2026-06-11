@@ -21,8 +21,8 @@ spring:
         format_sql: true
   servlet:
     multipart:
-      max-file-size: 20MB
-      max-request-size: 25MB
+      max-file-size: 200MB
+      max-request-size: 500MB
 
 logging:
   level:

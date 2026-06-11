@@ -8,6 +8,7 @@ public class AlbumPhotoResponse {
     private String url;
     private String originalName;
     private String contentType;
+    private String mediaType;
     private Long fileSize;
     private String title;
     private String description;
@@ -20,6 +21,7 @@ public class AlbumPhotoResponse {
         response.setUrl(photo.getUrl());
         response.setOriginalName(photo.getOriginalName());
         response.setContentType(photo.getContentType());
+        response.setMediaType(photo.getContentType() != null && photo.getContentType().startsWith("video/") ? "video" : "image");
         response.setFileSize(photo.getFileSize());
         response.setTitle(photo.getTitle());
         response.setDescription(photo.getDescription());
@@ -39,6 +41,9 @@ public class AlbumPhotoResponse {
 
     public String getContentType() { return contentType; }
     public void setContentType(String contentType) { this.contentType = contentType; }
+
+    public String getMediaType() { return mediaType; }
+    public void setMediaType(String mediaType) { this.mediaType = mediaType; }
 
     public Long getFileSize() { return fileSize; }
     public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
