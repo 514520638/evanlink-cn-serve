@@ -9,3 +9,5 @@
 
 依赖 .github/workflows/deploy.yml（Java 编译验证与 JAR 传输流程）、既有 evanlink-backend 容器。
 不管理 MySQL；数据库 schema 更新的限制见 [AUTO_DEPLOY.md](AUTO_DEPLOY.md)。
+
+ci-upload.sh：显示上传进度、检测传输停滞、最多三次断点续传；上传成功后才执行部署。依赖 runner 与服务器的 rsync。

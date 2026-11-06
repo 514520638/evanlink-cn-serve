@@ -19,7 +19,7 @@ Secrets 属于各个仓库，前端、Agent 的配置不会自动共享给后端
 
 GitHub runner 使用 Java 17 和 Maven clean verify 构建 Spring Boot JAR。
 部署任务验证 SSH 私钥格式、known_hosts 中的主机记录，并测试连接，输出 SSH_READY。
-app.jar 最多上传 8 分钟，部署最多 20 分钟；会与前端、Agent 共用 /var/lock/evanlink-release.lock。
+app.jar 最多上传 32 分钟，部署最多 20 分钟；会与前端、Agent 共用 /var/lock/evanlink-release.lock。
 
 deploy/ci-deploy.sh 校验容器的 JAR 挂载路径并备份旧文件，然后停止 evanlink-backend，覆盖 JAR 并启动同一容器。
 保留容器环境变量、端口、网络、挂载。服务器不运行 Maven，不构建 Java 镜像，不重启 MySQL。
@@ -46,3 +46,5 @@ Java 停止到健康检查通过期间会短暂中断接口；这台 2GB 服务�
 Host key verification failed 时，重新复制已验证的 known_hosts 到本仓库 Secret，不能以关闭 StrictHostKeyChecking 解决。
 修正 Secret 可重跑；修改工作流必须将新版本提交合并，重跑旧提交仍使用旧脚本。
 完整三项目配置见相邻 evan-agent/docs/AUTO_DEPLOY.md。
+
+上传使用 rsync --append-verify，日志显示字节进度。60 秒无传输活动会失败重试，每次最多 10 分钟，共三次；重试保留部分文件。总上传步骤限制 32 分钟。当前服务器已安装 rsync。传输速度仍取决于 GitHub runner 到服务器的网络，续传不保证提高带宽。
