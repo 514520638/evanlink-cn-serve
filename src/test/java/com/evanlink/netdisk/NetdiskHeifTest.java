@@ -49,4 +49,15 @@ class NetdiskHeifTest {
         };
         assertEquals("image/heic",service.media("123").contentType());assertEquals(2,calls.size());assertTrue(calls.get(0).endsWith("preview"));assertTrue(calls.get(1).endsWith("original"));
     }
+    @Test void thumbnailUsesSmallPreviewForOrdinaryJpeg() throws Exception {
+        var file=json.readTree("{\"path\":\"/evan-blog-album/IMG.jpg\",\"dlink\":\"https://d.pcs.baidu.com/original\",\"thumbs\":{\"url1\":\"https://thumbnail.baidupcs.com/small\",\"url3\":\"https://thumbnail.baidupcs.com/large\"}}");
+        var calls=new ArrayList<String>();
+        var service=new BaiduNetdiskService(new MockEnvironment(),null,null,json) {
+            @Override protected JsonNode metadata(String id){return file;}
+            @Override protected Media openMedia(String link,String expected){calls.add(link);return new Media(new ByteArrayInputStream(new byte[0]),"image/jpeg");}
+        };
+        service.thumbnail("123"); assertTrue(calls.get(0).endsWith("small"));
+        calls.clear();service.media("123");assertTrue(calls.get(0).endsWith("original"));
+    }
+
 }

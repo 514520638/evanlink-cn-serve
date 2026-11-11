@@ -151,11 +151,13 @@ public class BaiduNetdiskService {
     }
     public boolean published(String id) { return photos.existsByBaiduFileIdAndDeletedFalse(id); }
     public record Media(InputStream input,String contentType) {}
-    public Media media(String id) {
+    public Media media(String id) { return readMedia(id, false); }
+    public Media thumbnail(String id) { return readMedia(id, true); }
+    private Media readMedia(String id, boolean thumbnail) {
         JsonNode file=metadata(id);
         String expected=mime(file.path("path").asText());
-        if(isHeif(expected)) {
-            for(String size:List.of("url3","url2","url1")) {
+        if(thumbnail || isHeif(expected)) {
+            for(String size:thumbnail ? List.of("url1","url2","url3") : List.of("url3","url2","url1")) {
                 String preview=file.path("thumbs").path(size).asText();
                 if(!preview.isBlank()) {
                     try {return openMedia(preview,expected);} catch(ResponseStatusException unavailable) { /* 回退原图，由浏览器转换。 */ }

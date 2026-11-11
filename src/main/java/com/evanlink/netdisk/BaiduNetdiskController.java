@@ -48,9 +48,11 @@ public class BaiduNetdiskController {
     @PostMapping("/publish") public Map<String,Boolean> publish(HttpServletRequest req,@RequestBody PublishRequest body) {mutation(req);disk.publish(body.ids());return Map.of("success",true);}
     @GetMapping("/media/{id}") public void media(HttpServletRequest req,HttpServletResponse res,@PathVariable String id) throws java.io.IOException {
         if(!owner(req) && !disk.published(id)) throw BaiduNetdiskService.fail(404,"照片不存在或未公开");
-        if(!streams.tryAcquire()) throw BaiduNetdiskService.fail(429,"图片加载较多，请稍后重试");
         try {
-            var media=disk.media(id);
+            if(!streams.tryAcquire(2, java.util.concurrent.TimeUnit.SECONDS)) throw BaiduNetdiskService.fail(429,"图片正在排队，请稍后重试");
+        } catch(InterruptedException interrupted) { Thread.currentThread().interrupt(); throw BaiduNetdiskService.fail(503,"图片请求已中断，请重试"); }
+        try {
+            var media="thumb".equals(req.getParameter("variant")) ? disk.thumbnail(id) : disk.media(id);
             res.setContentType(media.contentType());res.setHeader("X-Content-Type-Options","nosniff");res.setHeader("Cache-Control","private, no-store");
             // 小缓冲流式转发，不把整张图片读进 Java 堆，也不落盘。
             try(var in=media.input()) {
@@ -59,5 +61,5 @@ public class BaiduNetdiskController {
             }
         } finally {streams.release();}
     }
-    @ExceptionHandler(ResponseStatusException.class) public ResponseEntity<Map<String,String>> error(ResponseStatusException ex) {return ResponseEntity.status(ex.getStatusCode()).header("Cache-Control","no-store").body(Map.of("message",Objects.requireNonNullElse(ex.getReason(),"网盘请求失败")));}
+    @ExceptionHandler(ResponseStatusException.class) public ResponseEntity<Map<String,String>> error(ResponseStatusException ex) {return ResponseEntity.status(ex.getStatusCode()).header("Cache-Control","no-store").header("Retry-After",ex.getStatusCode().value()==429 ? "2" : "0").body(Map.of("message",Objects.requireNonNullElse(ex.getReason(),"网盘请求失败")));}
 }
