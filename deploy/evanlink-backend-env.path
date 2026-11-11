@@ -1,0 +1,12 @@
+# 监控服务器 env 文件变更，触发容器重启让新值生效。
+# 安装：cp evanlink-backend-env.path /etc/systemd/system/
+# 启用：systemctl daemon-reload && systemctl enable --now evanlink-backend-env.path
+[Unit]
+Description=Watch evanlink-backend env file for changes
+
+[Path]
+PathModified=/opt/evanlink-backend/env/.env
+Unit=evanlink-backend-env.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# env 文件变更后重启 Java 容器；健康检查失败自动回滚 env 文件。
+# 安装：cp evanlink-backend-env.service /etc/systemd/system/
+[Unit]
+Description=Apply evanlink-backend env changes by restarting the container
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/evanlink-backend/apply-backend-env.sh
+TimeoutStartSec=180
