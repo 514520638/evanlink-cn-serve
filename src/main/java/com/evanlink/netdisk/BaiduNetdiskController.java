@@ -46,6 +46,7 @@ public class BaiduNetdiskController {
     @GetMapping("/files") public Map<String,Object> files(HttpServletRequest req,@RequestParam(required=false) String path,@RequestParam(defaultValue="1") int page) {requireOwner(req);return disk.files(path==null?disk.root():path,page);}
     public record PublishRequest(List<String> ids) {}
     @PostMapping("/publish") public Map<String,Boolean> publish(HttpServletRequest req,@RequestBody PublishRequest body) {mutation(req);disk.publish(body.ids());return Map.of("success",true);}
+    @PostMapping("/unpublish") public Map<String,Boolean> unpublish(HttpServletRequest req,@RequestBody PublishRequest body) {mutation(req);disk.unpublish(body.ids());return Map.of("success",true);}
     @GetMapping("/media/{id}") public void media(HttpServletRequest req,HttpServletResponse res,@PathVariable String id) throws java.io.IOException {
         if(!owner(req) && !disk.published(id)) throw BaiduNetdiskService.fail(404,"照片不存在或未公开");
         try {

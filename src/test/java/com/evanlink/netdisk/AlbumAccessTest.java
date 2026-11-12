@@ -24,7 +24,7 @@ class AlbumAccessTest {
         var photo=new AlbumPhoto();photo.setId(1L);photo.setBaiduFileId("123");photo.setUrl("/api/album/baidu/media/123");photo.setTitle("公开照片");
         var repo=(AlbumPhotoRepository)Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{AlbumPhotoRepository.class},(p,m,a)->switch(m.getName()) {
             case "findByDeletedFalseOrderBySortOrderAscCreatedAtDesc" -> List.of(photo);
-            case "existsByBaiduFileIdAndDeletedFalse" -> "123".equals(a[0]);
+            case "existsByBaiduFileIdAndDeletedFalseAndPublishedTrue" -> "123".equals(a[0]);
             case "findByIdAndDeletedFalse" -> Optional.of(photo);
             case "saveAndFlush" -> a[0];
             default -> throw new AssertionError("Unexpected database operation: "+m.getName());

@@ -51,6 +51,12 @@ public class AlbumPhoto {
 
     private Boolean deleted = false;
 
+    // 兼容已有相册：历史记录默认公开，隐藏不等于删除网盘原图。
+    @Column(name = "published", columnDefinition = "boolean default true")
+    private Boolean published = true;
+    public boolean isPublished() { return !Boolean.FALSE.equals(published); }
+    public void setPublished(Boolean published) { this.published = published; }
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

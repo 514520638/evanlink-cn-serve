@@ -121,11 +121,15 @@ public class BaiduNetdiskService {
         if(page<1 || page>10000) throw fail(400,"页码无效");
         String dir=checkedPath(path);
         JsonNode data=api("file",Map.of("method","list","dir",dir,"start",String.valueOf((page-1)*50),"limit","50","order","name"));
+        var ids=new ArrayList<String>();
+        for(JsonNode file:data.path("list")) ids.add(file.path("fs_id").asText());
+        var publishedIds=new HashSet<String>();
+        for(AlbumPhoto photo:photos.findByDeletedFalseAndBaiduFileIdIn(ids)) if(photo.isPublished()) publishedIds.add(photo.getBaiduFileId());
         var result=new ArrayList<Map<String,Object>>();
         for(JsonNode f:data.path("list")) {
             boolean folder=f.path("isdir").asInt()==1;
             String name=f.path("server_filename").asText();
-            if(folder || mime(name)!=null) result.add(Map.of("id",f.path("fs_id").asText(),"name",name,"path",f.path("path").asText(),"folder",folder,"size",f.path("size").asLong()));
+            if(folder || mime(name)!=null) result.add(Map.of("id",f.path("fs_id").asText(),"name",name,"path",f.path("path").asText(),"folder",folder,"size",f.path("size").asLong(),"published",publishedIds.contains(f.path("fs_id").asText())));
         }
         return Map.of("items",result,"page",page,"hasMore",data.path("list").size()==50,"path",dir);
     }
@@ -134,7 +138,7 @@ public class BaiduNetdiskService {
         JsonNode data=api("multimedia",Map.of("method","filemetas","fsids","["+id+"]","dlink","1","thumb","1","extra","1"));
         if(data.path("list").isEmpty()) throw fail(404,"网盘照片不存在");
         JsonNode file=data.path("list").get(0);checkedPath(file.path("path").asText());
-        if(file.path("isdir").asInt()!=0 || mime(file.path("filename").asText(file.path("server_filename").asText(file.path("path").asText())))==null) throw fail(400,"仅支持 JPG、PNG、WebP、GIF、HEIC、HEIF 照片");
+        if(file.path("isdir").asInt()!=0 || mime(file.path("filename").asText(file.path("server_filename").asText(file.path("path").asText())))==null) throw fail(400,"仅支持 JPG、PNG、WebP、GIF、HEIC、HEIF、LIVP 照片");
         if(file.path("size").asLong()>20*1024*1024) throw fail(400,"单张照片不能超过 20MB，请先压缩");
         return file;
     }
@@ -143,20 +147,27 @@ public class BaiduNetdiskService {
         var prepared=new ArrayList<AlbumPhoto>();
         for(String id:new LinkedHashSet<>(ids)) {
             JsonNode f=metadata(id);
-            if(photos.existsByBaiduFileIdAndDeletedFalse(id)) continue;
+            var existing=photos.findByBaiduFileIdAndDeletedFalse(id);
+            if(existing.isPresent()) { existing.get().setPublished(true); prepared.add(existing.get()); continue; }
             String name=Path.of(f.path("path").asText()).getFileName().toString();
             var photo=new AlbumPhoto();photo.setBaiduFileId(id);photo.setOriginalName(name);photo.setContentType(mime(name));photo.setFileSize(f.path("size").asLong());photo.setTitle(name);photo.setUrl("/api/album/baidu/media/"+id);prepared.add(photo);
         }
         photos.saveAll(prepared);
     }
-    public boolean published(String id) { return photos.existsByBaiduFileIdAndDeletedFalse(id); }
+    public synchronized void unpublish(List<String> ids) {
+        if(ids==null || ids.isEmpty() || ids.size()>20) throw fail(400,"请选择 1 至 20 张照片");
+        var records=photos.findByDeletedFalseAndBaiduFileIdIn(ids);
+        records.forEach(photo->photo.setPublished(false));
+        photos.saveAll(records);
+    }
+    public boolean published(String id) { return photos.existsByBaiduFileIdAndDeletedFalseAndPublishedTrue(id); }
     public record Media(InputStream input,String contentType) {}
     public Media media(String id) { return readMedia(id, false); }
     public Media thumbnail(String id) { return readMedia(id, true); }
     private Media readMedia(String id, boolean thumbnail) {
         JsonNode file=metadata(id);
         String expected=mime(file.path("path").asText());
-        if(thumbnail || isHeif(expected)) {
+        if(thumbnail || isHeif(expected) || "application/x-livp".equals(expected)) {
             for(String size:thumbnail ? List.of("url1","url2","url3") : List.of("url3","url2","url1")) {
                 String preview=file.path("thumbs").path(size).asText();
                 if(!preview.isBlank()) {
@@ -180,6 +191,13 @@ public class BaiduNetdiskService {
                 if(status!=200) {connection.disconnect();throw fail(502,"照片读取失败，请重新授权或稍后重试");}
                 String type=Objects.requireNonNullElse(connection.getContentType(),"").split(";")[0];
                 java.io.InputStream input=connection.getInputStream();
+                if("application/x-livp".equals(expected) && !Set.of("image/jpeg","image/png","image/webp","image/gif").contains(type)) {
+                    try {
+                        return LivpPhoto.extract(new java.io.FilterInputStream(input) {
+                            @Override public void close() throws java.io.IOException {try {super.close();} finally {connection.disconnect();}}
+                        });
+                    } catch(Exception ex) {input.close();connection.disconnect();throw ex;}
+                }
                 if(isHeif(expected) && Set.of("image/heic","image/heif","application/octet-stream").contains(type)) {
                     byte[] prefix=input.readNBytes(64);
                     try {type=imageType(prefix);} catch(ResponseStatusException invalid) {input.close();connection.disconnect();throw invalid;}
@@ -300,6 +318,7 @@ public class BaiduNetdiskService {
         if(n.endsWith(".gif")) return "image/gif";
         if(n.endsWith(".heic")) return "image/heic";
         if(n.endsWith(".heif")) return "image/heif";
+        if(n.endsWith(".livp")) return "application/x-livp";
         return null;
     }
     static ResponseStatusException fail(int code,String message) {return new ResponseStatusException(HttpStatus.valueOf(code),message);}

@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class NetdiskHeifTest {
     private final ObjectMapper json=new ObjectMapper();
+    private com.evanlink.repository.AlbumPhotoRepository emptyPhotos() {
+        return (com.evanlink.repository.AlbumPhotoRepository)java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{com.evanlink.repository.AlbumPhotoRepository.class},(p,m,a)->java.util.List.of());
+    }
     private byte[] header(String major,String compatible) {
         return ByteBuffer.allocate(24).putInt(24).put("ftyp".getBytes(StandardCharsets.US_ASCII)).put(major.getBytes(StandardCharsets.US_ASCII)).putInt(0).put(compatible.getBytes(StandardCharsets.US_ASCII)).put(compatible.getBytes(StandardCharsets.US_ASCII)).array();
     }
@@ -26,7 +29,7 @@ class NetdiskHeifTest {
     }
     @Test void directoryListingDoesNotFilterOutHeicOrHeif() throws Exception {
         var response=json.readTree("{\"list\":[{\"fs_id\":1,\"server_filename\":\"IMG.HEIC\",\"path\":\"/evan-blog-album/IMG.HEIC\"},{\"fs_id\":2,\"server_filename\":\"IMG2.heif\",\"path\":\"/evan-blog-album/IMG2.heif\"},{\"fs_id\":3,\"server_filename\":\"note.txt\"}]}");
-        var service=new BaiduNetdiskService(new MockEnvironment(),null,null,json) {@Override protected JsonNode api(String endpoint,Map<String,String> params){return response;}};
+        var service=new BaiduNetdiskService(new MockEnvironment(),null,emptyPhotos(),json) {@Override protected JsonNode api(String endpoint,Map<String,String> params){return response;}};
         assertEquals(2,((List<?>)service.files("/evan-blog-album",1).get("items")).size());
     }
     @Test void metadataRequestsPreviewAndAcceptsHeic() throws Exception {

@@ -19,6 +19,7 @@ public class AlbumPhotoService {
     /** 数据库中的未删除记录即已发布相册；网盘未导入文件不在此列表中。 */
     public List<AlbumPhotoResponse> list() {
         return repository.findByDeletedFalseOrderBySortOrderAscCreatedAtDesc().stream()
+            .filter(AlbumPhoto::isPublished)
             .map(AlbumPhotoResponse::from).toList();
     }
     public AlbumPhotoResponse upload(byte[] data,String name,String title,String description) {

@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 
 public class AlbumPhotoResponse {
     private Long id;
+    private String baiduFileId;
+    public String getBaiduFileId() { return baiduFileId; }
+    public void setBaiduFileId(String value) { baiduFileId = value; }
     private String url;
     private String originalName;
     private String contentType;
@@ -18,6 +21,7 @@ public class AlbumPhotoResponse {
     public static AlbumPhotoResponse from(AlbumPhoto photo) {
         AlbumPhotoResponse response = new AlbumPhotoResponse();
         response.setId(photo.getId());
+        response.setBaiduFileId(photo.getBaiduFileId());
         response.setUrl(photo.getUrl());
         response.setOriginalName(photo.getOriginalName());
         response.setContentType(photo.getContentType());
