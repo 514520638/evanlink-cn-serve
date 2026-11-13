@@ -44,4 +44,17 @@ class AdminCredentialsTest {
         ReflectionTestUtils.setField(service,"adminPassword","test-only-password-B");
         assertFalse(service.isValidToken(token));
     }
+    @Test void logoutRevokesCookieWithoutStoringRawToken() {
+        var service=configured();var hashes=new java.util.HashSet<String>();
+        var repository=(com.evanlink.auth.RevokedAdminSessionRepository)java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{com.evanlink.auth.RevokedAdminSessionRepository.class},(p,m,a)->switch(m.getName()) {
+            case "existsById" -> hashes.contains(a[0]);
+            case "save" -> {var row=(com.evanlink.auth.RevokedAdminSession)a[0];hashes.add(row.tokenHash);yield row;}
+            case "deleteByExpiresAtLessThan" -> null;
+            default -> throw new AssertionError(m.getName());
+        });
+        ReflectionTestUtils.setField(service,"revokedSessions",repository);
+        String token=service.login("test-admin","test-only-password-A").orElseThrow();assertTrue(service.expiresAt(token)>0);
+        service.revoke(token);assertFalse(service.isValidToken(token));assertTrue(hashes.stream().allMatch(h->h.length()==64));assertFalse(hashes.contains(token));
+    }
+
 }

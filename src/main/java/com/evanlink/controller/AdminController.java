@@ -34,7 +34,7 @@ public class AdminController {
     private SkillService skillService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
         if (!adminAuthService.isConfigured()) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Collections.singletonMap("message", "管理员登录未配置，请联系站点管理员"));
@@ -45,14 +45,24 @@ public class AdminController {
                 .body(Collections.singletonMap("message", "账号或密码错误"));
         }
 
-        response.addHeader("Set-Cookie", buildAdminCookie(token.get(), adminAuthService.getTokenTtlSeconds()).toString());
+        response.addHeader("Set-Cookie", buildAdminCookie(token.get(), adminAuthService.getTokenTtlSeconds(), httpRequest).toString());
         return ResponseEntity.ok(Map.of("success", true));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletResponse response) {
-        response.addHeader("Set-Cookie", buildAdminCookie("", 0).toString());
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        adminAuthService.revoke(getAdminCookieValue(request));
+        response.setHeader("Cache-Control", "no-store");
+        response.addHeader("Set-Cookie", ResponseCookie.from("evan_agent_session", "").httpOnly(true).sameSite("Lax").path("/agent-api").maxAge(0).build().toString());
+        response.addHeader("Set-Cookie", buildAdminCookie("", 0, request).toString());
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @GetMapping("/session")
+    public ResponseEntity<?> session(HttpServletRequest request) {
+        String token = getAdminCookieValue(request);
+        if (!adminAuthService.isValidToken(token)) return unauthorized();
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(Map.of("role", "owner", "expires_at", adminAuthService.expiresAt(token)));
     }
 
     @GetMapping("/profile")
@@ -104,10 +114,10 @@ public class AdminController {
         return null;
     }
 
-    private ResponseCookie buildAdminCookie(String token, long maxAgeSeconds) {
+    private ResponseCookie buildAdminCookie(String token, long maxAgeSeconds, HttpServletRequest request) {
         return ResponseCookie.from(AdminAuthService.ADMIN_COOKIE_NAME, token)
             .httpOnly(true)
-            .secure(false)
+            .secure(request.isSecure() || "https".equals(request.getHeader("X-Forwarded-Proto")))
             .sameSite("Lax")
             .path("/")
             .maxAge(maxAgeSeconds)

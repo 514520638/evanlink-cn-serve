@@ -10,11 +10,14 @@ import org.springframework.web.filter.CorsFilter;
 public class CorsConfig {
 
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsFilter corsFilter(org.springframework.core.env.Environment environment) {
         CorsConfiguration config = new CorsConfiguration();
         
-        // 允许所有来源，生产环境建议指定具体域名
-        config.addAllowedOriginPattern("*");
+        // Cookie 认证接口不能向任意站点开放带凭据跨域访问。
+        for (String origin : environment.getProperty("APP_ALLOWED_ORIGINS", "https://evanlink.cn,https://www.evanlink.cn,http://127.0.0.1:8081,http://localhost:8081").split(",")) {
+            if (origin.trim().equals("*")) throw new IllegalArgumentException("APP_ALLOWED_ORIGINS cannot contain *");
+            if (!origin.isBlank()) config.addAllowedOrigin(origin.trim());
+        }
         
         // 允许携带认证信息
         config.setAllowCredentials(true);

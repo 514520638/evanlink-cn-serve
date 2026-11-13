@@ -23,6 +23,23 @@ public class AdminAuthService {
     @Value("${app.admin.password:}")
     private String adminPassword;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.evanlink.auth.RevokedAdminSessionRepository revokedSessions;
+
+    private String tokenHash(String token) {
+        try { return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8))); }
+        catch(Exception ex) {throw new IllegalStateException("Token hashing failed");}
+    }
+    public void revoke(String token) {
+        if (token == null || !isValidToken(token) || revokedSessions == null) return;
+        var row = new com.evanlink.auth.RevokedAdminSession(); row.tokenHash = tokenHash(token); row.expiresAt = expiresAt(token);
+        revokedSessions.save(row); revokedSessions.deleteByExpiresAtLessThan(Instant.now().getEpochSecond());
+    }
+    public long expiresAt(String token) {
+        if (!isValidToken(token)) return 0;
+        return Long.parseLong(decode(token.split("\\.", 2)[0]).split(":", 3)[1]);
+    }
+
     public boolean isConfigured() {
         return adminUsername != null && !adminUsername.isBlank()
             && adminPassword != null && !adminPassword.isBlank();
@@ -42,7 +59,7 @@ public class AdminAuthService {
         }
 
         long expiresAt = Instant.now().plusSeconds(TOKEN_TTL_SECONDS).getEpochSecond();
-        String payload = adminUsername + ":" + expiresAt;
+        String payload = adminUsername + ":" + expiresAt + ":" + java.util.UUID.randomUUID();
         return Optional.of(encode(payload) + "." + sign(payload));
     }
 
@@ -51,6 +68,7 @@ public class AdminAuthService {
             return false;
         }
 
+        if (revokedSessions != null && revokedSessions.existsById(tokenHash(token))) return false;
         String[] parts = token.split("\\.", 2);
         if (parts.length != 2) {
             return false;
@@ -61,8 +79,8 @@ public class AdminAuthService {
             return false;
         }
 
-        String[] payloadParts = payload.split(":", 2);
-        if (payloadParts.length != 2 || !adminUsername.equals(payloadParts[0])) {
+        String[] payloadParts = payload.split(":", 3);
+        if (payloadParts.length < 2 || !adminUsername.equals(payloadParts[0])) {
             return false;
         }
 
